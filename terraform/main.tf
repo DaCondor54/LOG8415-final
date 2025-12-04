@@ -33,7 +33,10 @@ module "vpc" {
   azs  = ["us-east-1a"]
 
   private_subnets = ["10.0.1.0/24"]
-  public_subnets  = ["10.0.4.0/26"]
+  public_subnets  = ["10.0.4.0/24"]
+
+  enable_dns_hostnames = true
+  enable_dns_support   = true
 
   enable_nat_gateway = true
 
@@ -46,20 +49,81 @@ module "vpc" {
       protocol    = "tcp"
       cidr_blocks = "0.0.0.0/0"
     },
+    {
+      from_port = 3306
+      to_port = 3306
+      protocol = "tcp"
+      cidr_blocks = "0.0.0.0/0"
+    }
   ]
 
   default_security_group_egress = [
+    {
+      from_port   = 22
+      to_port     = 22
+      protocol    = "tcp"
+      cidr_blocks = "0.0.0.0/0"
+    },
     {
       from_port = 80
       to_port = 80
       protocol = "tcp"
       cidr_blocks = "0.0.0.0/0"
+    },
+    {
+      from_port = 443
+      to_port = 443
+      protocol = "tcp"
+      cidr_blocks = "0.0.0.0/0"
+    },
+    {
+      from_port = 3306
+      to_port = 3306
+      protocol = "tcp"
+      cidr_blocks = "0.0.0.0/0"
     }
+
   ]
+}
+
+resource "aws_route53_zone" "private_zone" {
+  name = "internal"
+  vpc {
+    vpc_id = module.vpc.vpc_id
+  }
+}
+
+resource "aws_route53_record" "source" {
+  zone_id = aws_route53_zone.private_zone.zone_id
+  name = "source.internal"
+  type = "A"
+  ttl = "30"
+  records = [aws_instance.app_server.private_ip]
+}
+
+resource "aws_route53_record" "replica_1" {
+  zone_id = aws_route53_zone.private_zone.zone_id
+  name = "replica_1.internal"
+  type = "A"
+  ttl = "30"
+  records = [aws_instance.replica_1.private_ip]
 }
 
 
 resource "aws_instance" "app_server" {
+  ami           = data.aws_ami.ubuntu.id
+  instance_type = "t2.micro"
+
+  vpc_security_group_ids = [module.vpc.default_security_group_id]
+  subnet_id              = module.vpc.public_subnets[0]
+  associate_public_ip_address = true  
+
+  tags = {
+    Name = "log8415-tp3"
+  }
+}
+
+resource "aws_instance" "replica_1" {
   ami           = data.aws_ami.ubuntu.id
   instance_type = "t2.micro"
 
