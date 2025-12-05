@@ -16,7 +16,11 @@ sudo systemctl restart mysql
 sudo mysql <<EOF
 
 CREATE USER 'replica_1'@'10.0.4.%' IDENTIFIED WITH mysql_native_password BY 'Replic@1';
-GRANT REPLICATION SLAVE ON *.* TO 'replica_1'@'10.0.4.%';
+GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO 'replica_1'@'10.0.4.%';
+FLUSH PRIVILEGES;
+
+CREATE USER 'replica_2'@'10.0.4.%' IDENTIFIED WITH mysql_native_password BY 'Replic@1';
+GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO 'replica_2'@'10.0.4.%';
 FLUSH PRIVILEGES;
 
 FLUSH TABLES WITH READ LOCK;

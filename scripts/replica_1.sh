@@ -4,8 +4,9 @@ sudo apt-get update && sudo apt-get upgrade -y
 sudo apt-get install mysql-server sysbench -y
 
 
-export SOURCE_PUBLIC_IP=$(hostname -I)
-export CONFIG_FILE="/etc/mysql/mysql.conf.d/mysqld.cnf"
+CONFIG_FILE="/etc/mysql/mysql.conf.d/mysqld.cnf"
+SOURCE_HOST=$(dig +short source.internal)
+REPLICA_PASS="Replic@1"
 
 
 sudo sed -i "s/^# server-id.*$/server-id = 2/" "$CONFIG_FILE"
@@ -15,19 +16,19 @@ sudo sed -i "78i\relay-log = /var/log/mysql/mysql-relay-bin.log" "$CONFIG_FILE"
 
 sudo systemctl restart mysql
 
-mysql -h source.internal -u replica_1 -pReplic@1 <<EOF
+MASTER_STATUS=$(mysql -h source.internal -u replica_1 -p$REPLICA_PASS -e "SHOW MASTER STATUS;" -s)
 
-EOF
-
+SOURCE_LOG_FILE=$(echo "$MASTER_STATUS" | tail -n 1 | awk '{print $1}')
+SOURCE_LOG_POS=$(echo "$MASTER_STATUS" | tail -n 1 | awk '{print $2}')
 
 sudo mysql <<EOF
 
 CHANGE REPLICATION SOURCE TO
-SOURCE_HOST='10.0.4.173',
+SOURCE_HOST='$SOURCE_HOST',
 SOURCE_USER='replica_1',
-SOURCE_PASSWORD='Replic@1',
-SOURCE_LOG_FILE='mysql-bin.000001',
-SOURCE_LOG_POS=5073;
+SOURCE_PASSWORD='$REPLICA_PASS',
+SOURCE_LOG_FILE='$SOURCE_LOG_FILE',
+SOURCE_LOG_POS=$SOURCE_LOG_POS;
 
 START REPLICA;
 EOF
