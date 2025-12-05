@@ -50,9 +50,9 @@ module "vpc" {
       cidr_blocks = "0.0.0.0/0"
     },
     {
-      from_port = 3306
-      to_port = 3306
-      protocol = "tcp"
+      from_port   = 3306
+      to_port     = 3306
+      protocol    = "tcp"
       cidr_blocks = "0.0.0.0/0"
     }
   ]
@@ -65,21 +65,21 @@ module "vpc" {
       cidr_blocks = "0.0.0.0/0"
     },
     {
-      from_port = 80
-      to_port = 80
-      protocol = "tcp"
+      from_port   = 80
+      to_port     = 80
+      protocol    = "tcp"
       cidr_blocks = "0.0.0.0/0"
     },
     {
-      from_port = 443
-      to_port = 443
-      protocol = "tcp"
+      from_port   = 443
+      to_port     = 443
+      protocol    = "tcp"
       cidr_blocks = "0.0.0.0/0"
     },
     {
-      from_port = 3306
-      to_port = 3306
-      protocol = "tcp"
+      from_port   = 3306
+      to_port     = 3306
+      protocol    = "tcp"
       cidr_blocks = "0.0.0.0/0"
     }
 
@@ -95,31 +95,40 @@ resource "aws_route53_zone" "private_zone" {
 
 resource "aws_route53_record" "source" {
   zone_id = aws_route53_zone.private_zone.zone_id
-  name = "source.internal"
-  type = "A"
-  ttl = "30"
-  records = [aws_instance.app_server.private_ip]
+  name    = "source.internal"
+  type    = "A"
+  ttl     = "30"
+  records = [aws_instance.source.private_ip]
 }
 
 resource "aws_route53_record" "replica_1" {
   zone_id = aws_route53_zone.private_zone.zone_id
-  name = "replica_1.internal"
-  type = "A"
-  ttl = "30"
+  name    = "replica_1.internal"
+  type    = "A"
+  ttl     = "30"
   records = [aws_instance.replica_1.private_ip]
 }
 
+resource "aws_route53_record" "replica_2" {
+  zone_id = aws_route53_zone.private_zone.zone_id
+  name    = "replica_2.internal"
+  type    = "A"
+  ttl     = "30"
+  records = [aws_instance.replica_2.private_ip]
+}
 
-resource "aws_instance" "app_server" {
+
+resource "aws_instance" "source" {
   ami           = data.aws_ami.ubuntu.id
   instance_type = "t2.micro"
 
-  vpc_security_group_ids = [module.vpc.default_security_group_id]
-  subnet_id              = module.vpc.public_subnets[0]
-  associate_public_ip_address = true  
+  vpc_security_group_ids      = [module.vpc.default_security_group_id]
+  subnet_id                   = module.vpc.public_subnets[0]
+  associate_public_ip_address = true
+  user_data                   = file("${path.module}/scripts/source-server.sh")
 
   tags = {
-    Name = "log8415-tp3"
+    Name = "log8415-tp3-source"
   }
 }
 
@@ -127,11 +136,31 @@ resource "aws_instance" "replica_1" {
   ami           = data.aws_ami.ubuntu.id
   instance_type = "t2.micro"
 
-  vpc_security_group_ids = [module.vpc.default_security_group_id]
-  subnet_id              = module.vpc.public_subnets[0]
+  vpc_security_group_ids      = [module.vpc.default_security_group_id]
+  subnet_id                   = module.vpc.public_subnets[0]
   associate_public_ip_address = true
+  user_data = templatefile("${path.module}/scripts/replica.sh.tftpl", {
+    instance_num = 1
+  })
 
   tags = {
-    Name = "log8415-tp3"
+    Name = "log8415-tp3-replica-1"
+  }
+}
+
+resource "aws_instance" "replica_2" {
+  ami           = data.aws_ami.ubuntu.id
+  instance_type = "t2.micro"
+
+  vpc_security_group_ids      = [module.vpc.default_security_group_id]
+  subnet_id                   = module.vpc.public_subnets[0]
+  associate_public_ip_address = true
+
+  user_data = templatefile("${path.module}/scripts/replica.sh.tftpl", {
+    instance_num = 2
+  })
+
+  tags = {
+    Name = "log8415-tp3-replica-2"
   }
 }
