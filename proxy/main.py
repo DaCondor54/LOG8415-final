@@ -26,11 +26,11 @@ class InvalidQueryType(Exception):
     pass
 
 class Router:
-    source = '54.87.26.74'
-    replicas = ['54.167.80.3','54.226.0.76']
+    source = '35.172.201.186'
+    replicas = ['54.83.97.236','54.167.9.126']
 
     read_queries = {'SELECT'}
-    write_queries = {'DELETE', 'INSERT', 'UPDATE'}
+    write_queries = {'DELETE', 'INSERT', 'UPDATE', 'CREATE TABLE'}
 
     def __init__(self):
         self._forwarding_strategy = ForwardingStrategies.CUSTOM
@@ -116,6 +116,7 @@ def send_sql_query(sql_query: str, server_ip: str):
         cursor = cnx.cursor()
 
         cursor.execute(sql_query)
+        cnx.commit()
 
         rows = cursor.fetchall()
         return { 'rows': rows, 'ip': server_ip, 'is_source': server_ip == router.source, 'strategy': router.forwarding_strategy }
@@ -130,4 +131,4 @@ def send_sql_query(sql_query: str, server_ip: str):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=3000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=4000, reload=True)

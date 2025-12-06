@@ -8,7 +8,8 @@ INSTANCE_NUMBER=${instance_num}
 CONFIG_FILE="/etc/mysql/mysql.conf.d/mysqld.cnf"
 REPLICA_PASS="Replic@$INSTANCE_NUMBER"
 
-
+SOURCE_PUBLIC_IP=$(hostname -I)
+sudo sed -i "s/^bind-address.*$/bind-address = $SOURCE_PUBLIC_IP/" "$CONFIG_FILE" # FOR TESTING (listen only to proxy)
 sudo sed -i "s/^# server-id.*$/server-id = $INSTANCE_NUMBER/" "$CONFIG_FILE"
 sudo sed -i "s/^# log_bin/log_bin/" "$CONFIG_FILE"
 sudo sed -i "s/^# binlog_do_db.*$/binlog_do_db = sakila/" "$CONFIG_FILE"
@@ -34,6 +35,8 @@ SOURCE_HOST=$(dig +short source.internal)
 PROXY="'proxy'@'%'"
 
 sudo mysql <<EOF
+
+CREATE DATABASE sakila;
 
 CREATE USER $PROXY IDENTIFIED WITH mysql_native_password BY 'P@ssword123';
 GRANT SELECT ON sakila.* TO $PROXY;
