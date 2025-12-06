@@ -13,7 +13,7 @@ class DangerousQueryException(Exception):
     pass
 
 
-trusted_host = 'localhost:4000'
+trusted_host = 'proxy.internal'
 dangerous_queries = {'DROP', 'DELETE ALL'}
 
 def validate_query_safety(sql_query: str) -> bool:
@@ -23,7 +23,7 @@ def validate_query_safety(sql_query: str) -> bool:
 
 def send_sql_query(request):
     json_request = json.dumps(asdict(request), indent=4)
-    response = requests.post(f"http://{trusted_host}", json_request)
+    response = requests.post(f"http://{trusted_host}:3000", json_request)
     return response.json()
 
 app = FastAPI()

@@ -26,8 +26,8 @@ class InvalidQueryType(Exception):
     pass
 
 class Router:
-    source = '35.172.201.186'
-    replicas = ['54.83.97.236','54.167.9.126']
+    source = 'source.internal'
+    replicas = ['replica_1.internal','replica_2.internal']
 
     read_queries = {'SELECT'}
     write_queries = {'DELETE', 'INSERT', 'UPDATE', 'CREATE TABLE'}
@@ -123,7 +123,7 @@ def send_sql_query(sql_query: str, server_ip: str):
 
     except pymysql.Error as e:
         print(f"Error connecting to MySQL with PyMySQL: {e}")
-        
+        raise HTTPException(status_code = 400, detail=str(e))
     finally:        
         if cnx:
             cnx.close()
@@ -131,4 +131,4 @@ def send_sql_query(sql_query: str, server_ip: str):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=4000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=3000, reload=True)

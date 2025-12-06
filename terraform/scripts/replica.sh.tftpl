@@ -19,10 +19,13 @@ sudo systemctl restart mysql
 
 while true; do
     MASTER_STATUS=$(mysql -h source.internal -u replica_$INSTANCE_NUMBER -p$REPLICA_PASS -e "SHOW MASTER STATUS;" -s 2>/dev/null)
+    SOURCE_HOST=$(dig +short source.internal)
 
-    if [[ -n "$MASTER_STATUS" ]]; then
+    if [[ -n "$MASTER_STATUS" && -n "$SOURCE_HOST" ]]; then
         echo "Got Master Status"
         echo $MASTER_STATUS
+        echo "Got Source Host Status"
+        echo $SOURCE_HOST
         break
     fi
     echo "Waiting..."
@@ -31,7 +34,6 @@ done
 
 SOURCE_LOG_FILE=$(echo "$MASTER_STATUS" | tail -n 1 | awk '{print $1}')
 SOURCE_LOG_POS=$(echo "$MASTER_STATUS" | tail -n 1 | awk '{print $2}')
-SOURCE_HOST=$(dig +short source.internal)
 PROXY="'proxy'@'%'"
 
 sudo mysql <<EOF
@@ -52,5 +54,3 @@ SOURCE_LOG_POS=$SOURCE_LOG_POS;
 
 START REPLICA;
 EOF
-
-touch replica_$REPLICA_PASS.txt
