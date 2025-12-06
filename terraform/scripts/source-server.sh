@@ -1,7 +1,7 @@
 #!/bin/bash
 
 sudo apt-get update && sudo apt-get upgrade -y
-sudo apt-get install mysql-server sysbench -y
+sudo apt-get install mysql-server -y
 
 SOURCE_PUBLIC_IP=$(hostname -I)
 CONFIG_FILE="/etc/mysql/mysql.conf.d/mysqld.cnf"
@@ -35,4 +35,14 @@ FLUSH PRIVILEGES;
 FLUSH TABLES WITH READ LOCK;
 
 UNLOCK TABLES;
+EOF
+
+wget https://downloads.mysql.com/docs/sakila-db.tar.gz
+tar -xvzf sakila-db.tar.gz -C /tmp/
+
+sudo mysql <<EOF
+
+SOURCE /tmp/sakila-db/sakila-schema.sql;
+SOURCE /tmp/sakila-db/sakila-data.sql;
+
 EOF

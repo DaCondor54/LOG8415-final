@@ -2,7 +2,8 @@ from dataclasses import dataclass, asdict
 import requests
 import json
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 @dataclass
 class SQLRequest:
@@ -12,9 +13,20 @@ class SQLRequest:
 class DangerousQueryException(Exception):
     pass
 
+security = HTTPBearer()
 
 trusted_host = 'proxy.internal'
-dangerous_queries = {'DROP', 'DELETE ALL'}
+dangerous_queries = {'DROP DATABASE', 'DELETE ALL', 'TRUNCATE', 'DELETE FROM'}
+SUPER_SECRET_TOKEN = 'SUPER_SECRET_TOKEN'
+
+def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    if credentials.scheme.lower() != 'bearer':
+        raise HTTPException(status_code=401, detail="Invalid authentication scheme")
+    
+    if credentials.credentials != SUPER_SECRET_TOKEN:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    
+    return {"authenticated": True, "token": credentials.credentials}
 
 def validate_query_safety(sql_query: str) -> bool:
     for dangerous_query in dangerous_queries:
@@ -29,7 +41,7 @@ def send_sql_query(request):
 app = FastAPI()
 
 @app.post("/")
-async def receive_sql_query(request: SQLRequest):
+async def receive_sql_query(request: SQLRequest, auth: dict = Depends(verify_token)):
     try:
         validate_query_safety(request.sql_query)
         return send_sql_query(request)
