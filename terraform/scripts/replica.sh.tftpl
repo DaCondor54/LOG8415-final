@@ -1,7 +1,5 @@
 #!/bin/bash
 
-sleep 60
-
 sudo apt-get update && sudo apt-get upgrade -y
 sudo apt-get install mysql-server sysbench -y
 
@@ -33,8 +31,14 @@ done
 SOURCE_LOG_FILE=$(echo "$MASTER_STATUS" | tail -n 1 | awk '{print $1}')
 SOURCE_LOG_POS=$(echo "$MASTER_STATUS" | tail -n 1 | awk '{print $2}')
 SOURCE_HOST=$(dig +short source.internal)
+PROXY="'proxy'@'%'"
 
 sudo mysql <<EOF
+
+CREATE USER $PROXY IDENTIFIED WITH mysql_native_password BY 'P@ssword123';
+GRANT SELECT ON sakila.* TO $PROXY;
+
+FLUSH PRIVILEGES;
 
 CHANGE REPLICATION SOURCE TO
 SOURCE_HOST='$SOURCE_HOST',
