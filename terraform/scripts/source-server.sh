@@ -14,8 +14,8 @@ sudo sed -i "s/^# binlog_do_db.*$/binlog_do_db = sakila/" "$CONFIG_FILE"
 sudo systemctl restart mysql 
 
 PROXY="'proxy'@'%'"
-REPLICA_1="'replica_1'@'10.0.4.%'"
-REPLICA_2="'replica_2'@'10.0.4.%'"
+REPLICA_1="'replica_1'@'10.0.1.%'"
+REPLICA_2="'replica_2'@'10.0.1.%'"
 
 sudo mysql <<EOF
 

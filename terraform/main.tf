@@ -6,7 +6,7 @@ terraform {
     }
 
     cloudinit = {
-      source = "hashicorp/cloudinit"
+      source  = "hashicorp/cloudinit"
       version = "~> 2.3"
     }
   }
@@ -64,7 +64,7 @@ module "vpc" {
       to_port     = 3306
       protocol    = "tcp"
       cidr_blocks = "0.0.0.0/0"
-    }, 
+    },
     {
       from_port   = 3000
       to_port     = 3000
@@ -97,7 +97,7 @@ module "vpc" {
       to_port     = 3306
       protocol    = "tcp"
       cidr_blocks = "0.0.0.0/0"
-    }, 
+    },
     {
       from_port   = 3000
       to_port     = 3000
@@ -152,10 +152,12 @@ resource "aws_instance" "source" {
   ami           = data.aws_ami.ubuntu.id
   instance_type = "t2.micro"
 
-  vpc_security_group_ids      = [module.vpc.default_security_group_id]
-  subnet_id                   = module.vpc.public_subnets[0]
-  associate_public_ip_address = true
-  user_data                   = file("${path.module}/scripts/source-server.sh")
+  depends_on = [module.vpc.aws_nat_gateway]
+
+  vpc_security_group_ids = [module.vpc.default_security_group_id]
+  subnet_id              = module.vpc.private_subnets[0]
+  user_data              = file("${path.module}/scripts/source-server.sh")
+  key_name               = "tp3"
 
   tags = {
     Name = "log8415-tp3-source"
@@ -166,11 +168,12 @@ resource "aws_instance" "replica_1" {
   ami           = data.aws_ami.ubuntu.id
   instance_type = "t2.micro"
 
-  depends_on = [aws_instance.source]
+  depends_on = [aws_instance.source, module.vpc.aws_nat_gateway]
 
-  vpc_security_group_ids      = [module.vpc.default_security_group_id]
-  subnet_id                   = module.vpc.public_subnets[0]
-  associate_public_ip_address = true
+  vpc_security_group_ids = [module.vpc.default_security_group_id]
+  subnet_id              = module.vpc.private_subnets[0]
+  key_name               = "tp3"
+
   user_data = templatefile("${path.module}/scripts/replica.sh.tftpl", {
     instance_num = 1
   })
@@ -184,11 +187,11 @@ resource "aws_instance" "replica_2" {
   ami           = data.aws_ami.ubuntu.id
   instance_type = "t2.micro"
 
-  depends_on = [aws_instance.source]
+  depends_on = [aws_instance.source, module.vpc.aws_nat_gateway]
 
-  vpc_security_group_ids      = [module.vpc.default_security_group_id]
-  subnet_id                   = module.vpc.public_subnets[0]
-  associate_public_ip_address = true
+  vpc_security_group_ids = [module.vpc.default_security_group_id]
+  subnet_id              = module.vpc.private_subnets[0]
+  key_name               = "tp3"
 
   user_data = templatefile("${path.module}/scripts/replica.sh.tftpl", {
     instance_num = 2
@@ -200,12 +203,12 @@ resource "aws_instance" "replica_2" {
 }
 
 locals {
-  proxy_py = file("${path.module}/../proxy/main.py")
+  proxy_py           = file("${path.module}/../proxy/main.py")
   proxy_requirements = file("${path.module}/../proxy/requirements.txt")
 
-  gatekeeper_py = file("${path.module}/../gatekeeper/main.py")
+  gatekeeper_py           = file("${path.module}/../gatekeeper/main.py")
   gatekeeper_requirements = file("${path.module}/../gatekeeper/requirements.txt")
-  
+
   startup_script = file("${path.module}/scripts/startup.sh")
 }
 
@@ -217,16 +220,16 @@ data "cloudinit_config" "proxy_user_data" {
     content_type = "text/cloud-config"
     content = yamlencode({
       write_files = [{
-        content = local.proxy_py                
-        path = "/opt/main.py"
-        owner = "root:root"
+        content     = local.proxy_py
+        path        = "/opt/main.py"
+        owner       = "root:root"
         permissions = "0777"
-    },{
-        content = local.proxy_requirements
-        path = "/opt/requirements.txt"
-        owner = "root:root"
+        }, {
+        content     = local.proxy_requirements
+        path        = "/opt/requirements.txt"
+        owner       = "root:root"
         permissions = "0777"
-    }]
+      }]
     })
   }
 
@@ -241,20 +244,20 @@ data "cloudinit_config" "gatekeeper_user_data" {
   gzip          = false
   base64_encode = false
 
-    part {
+  part {
     content_type = "text/cloud-config"
     content = yamlencode({
       write_files = [{
-        content = local.gatekeeper_py                
-        path = "/opt/main.py"
-        owner = "root:root"
+        content     = local.gatekeeper_py
+        path        = "/opt/main.py"
+        owner       = "root:root"
         permissions = "0777"
-    },{
-        content = local.gatekeeper_requirements
-        path = "/opt/requirements.txt"
-        owner = "root:root"
+        }, {
+        content     = local.gatekeeper_requirements
+        path        = "/opt/requirements.txt"
+        owner       = "root:root"
         permissions = "0777"
-    }]
+      }]
     })
   }
 
@@ -269,9 +272,11 @@ resource "aws_instance" "proxy" {
   ami           = data.aws_ami.ubuntu.id
   instance_type = "t2.micro"
 
-  vpc_security_group_ids      = [module.vpc.default_security_group_id]
-  subnet_id                   = module.vpc.public_subnets[0]
-  associate_public_ip_address = true
+  depends_on = [module.vpc.aws_nat_gateway]
+
+  vpc_security_group_ids = [module.vpc.default_security_group_id]
+  subnet_id              = module.vpc.private_subnets[0]
+  key_name               = "tp3"
 
   user_data = data.cloudinit_config.proxy_user_data.rendered
 
@@ -287,6 +292,7 @@ resource "aws_instance" "gatekeeper" {
   vpc_security_group_ids      = [module.vpc.default_security_group_id]
   subnet_id                   = module.vpc.public_subnets[0]
   associate_public_ip_address = true
+  key_name                    = "tp3"
 
   user_data = data.cloudinit_config.gatekeeper_user_data.rendered
 
