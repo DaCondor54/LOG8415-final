@@ -116,7 +116,10 @@ def send_sql_query(sql_query: str, server_ip: str):
         cursor = cnx.cursor()
 
         cursor.execute(sql_query)
-        cnx.commit()
+
+        if router.is_write_query(sql_query):
+            cnx.commit()
+            return { 'rows': cursor.rowcount, 'ip': server_ip, 'is_source': server_ip == router.source, 'strategy': router.forwarding_strategy }
 
         rows = cursor.fetchall()
         return { 'rows': rows, 'ip': server_ip, 'is_source': server_ip == router.source, 'strategy': router.forwarding_strategy }
