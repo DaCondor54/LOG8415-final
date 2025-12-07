@@ -17,9 +17,14 @@ PROXY="'proxy'@'%'"
 REPLICA_1="'replica_1'@'10.0.1.%'"
 REPLICA_2="'replica_2'@'10.0.1.%'"
 
+
+wget https://downloads.mysql.com/docs/sakila-db.tar.gz
+tar -xvzf sakila-db.tar.gz -C /tmp/
+
 sudo mysql <<EOF
 
-CREATE DATABASE sakila;
+SOURCE /tmp/sakila-db/sakila-schema.sql;
+SOURCE /tmp/sakila-db/sakila-data.sql;
 
 CREATE USER $REPLICA_1 IDENTIFIED WITH mysql_native_password BY 'Replic@1';
 GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO $REPLICA_1;
@@ -35,14 +40,4 @@ FLUSH PRIVILEGES;
 FLUSH TABLES WITH READ LOCK;
 
 UNLOCK TABLES;
-EOF
-
-wget https://downloads.mysql.com/docs/sakila-db.tar.gz
-tar -xvzf sakila-db.tar.gz -C /tmp/
-
-sudo mysql <<EOF
-
-SOURCE /tmp/sakila-db/sakila-schema.sql;
-SOURCE /tmp/sakila-db/sakila-data.sql;
-
 EOF

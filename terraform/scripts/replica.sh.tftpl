@@ -36,9 +36,14 @@ SOURCE_LOG_FILE=$(echo "$MASTER_STATUS" | tail -n 1 | awk '{print $1}')
 SOURCE_LOG_POS=$(echo "$MASTER_STATUS" | tail -n 1 | awk '{print $2}')
 PROXY="'proxy'@'%'"
 
+
+wget https://downloads.mysql.com/docs/sakila-db.tar.gz
+tar -xvzf sakila-db.tar.gz -C /tmp/
+
 sudo mysql <<EOF
 
-CREATE DATABASE sakila;
+SOURCE /tmp/sakila-db/sakila-schema.sql;
+SOURCE /tmp/sakila-db/sakila-data.sql;
 
 CREATE USER $PROXY IDENTIFIED WITH mysql_native_password BY 'P@ssword123';
 GRANT SELECT ON sakila.* TO $PROXY;
