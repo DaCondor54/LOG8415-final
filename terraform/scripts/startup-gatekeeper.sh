@@ -17,5 +17,4 @@ ufw --force reset
 ufw default deny incoming
 ufw default allow outgoing
 ufw allow 3000/tcp
-ufw allow 22/tcp
 ufw --force enable

@@ -52,5 +52,4 @@ ufw default allow outgoing
 ufw allow from $PROXY_IP to any port 3306 proto tcp
 ufw allow from $REPLICA_1_IP to any port 3306 proto tcp
 ufw allow from $REPLICA_2_IP to any port 3306 proto tcp
-ufw allow 22/tcp
 ufw --force enable

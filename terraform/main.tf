@@ -53,30 +53,11 @@ module "vpc" {
 
   default_security_group_ingress = [
     {
-      from_port   = 22
-      to_port     = 22
-      protocol    = "tcp"
-      cidr_blocks = "0.0.0.0/0"
-    },
-    {
-
-      from_port   = 3306
-      to_port     = 3306
-      protocol    = "tcp"
-      cidr_blocks = "0.0.0.0/0"
-    },
-    {
       from_port   = 3000
       to_port     = 3000
       protocol    = "tcp"
       cidr_blocks = "0.0.0.0/0"
     }, 
-    {
-      from_port   = 8
-      to_port     = 0
-      protocol    = "icmp"
-      cidr_blocks = "0.0.0.0/0"
-    }
   ]
 
   default_security_group_egress = [
@@ -87,6 +68,62 @@ module "vpc" {
       cidr_blocks = "0.0.0.0/0"
     }    
   ]
+}
+
+resource "aws_security_group" "mysql_connections" {
+  name        = "mysql_connections"
+  vpc_id      = module.vpc.vpc_id
+
+  ingress {
+    description = "MySQL Connections"
+    from_port   = 3306
+    to_port     = 3306
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "Ping"
+    from_port   = 8
+    to_port     = 0
+    protocol    = "icmp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "mysql_connections_sg"
+  }
+}
+
+resource "aws_security_group" "proxy_sg" {
+  name        = "proxy_sg"
+  vpc_id      = module.vpc.vpc_id
+
+  ingress {
+    description = "MySQL Connections"
+    from_port   = 3000
+    to_port     = 3000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "proxy_sg"
+  }
 }
 
 resource "aws_route53_zone" "private_zone" {
@@ -144,10 +181,9 @@ resource "aws_instance" "source" {
 
   depends_on = [module.vpc.aws_nat_gateway]
 
-  vpc_security_group_ids = [module.vpc.default_security_group_id]
+  vpc_security_group_ids = [aws_security_group.mysql_connections.id]
   subnet_id              = module.vpc.private_subnets[0]
   user_data              = file("${path.module}/scripts/source-server.sh")
-  key_name               = "tp3"
 
   tags = {
     Name = "log8415-tp3-source"
@@ -160,9 +196,8 @@ resource "aws_instance" "replica_1" {
 
   depends_on = [aws_instance.source, module.vpc.aws_nat_gateway]
 
-  vpc_security_group_ids = [module.vpc.default_security_group_id]
+  vpc_security_group_ids = [aws_security_group.mysql_connections.id]
   subnet_id              = module.vpc.private_subnets[0]
-  key_name               = "tp3"
 
   user_data = templatefile("${path.module}/scripts/replica.sh.tftpl", {
     instance_num = 1
@@ -179,9 +214,8 @@ resource "aws_instance" "replica_2" {
 
   depends_on = [aws_instance.source, module.vpc.aws_nat_gateway]
 
-  vpc_security_group_ids = [module.vpc.default_security_group_id]
+  vpc_security_group_ids = [aws_security_group.mysql_connections.id]
   subnet_id              = module.vpc.private_subnets[0]
-  key_name               = "tp3"
 
   user_data = templatefile("${path.module}/scripts/replica.sh.tftpl", {
     instance_num = 2
@@ -265,9 +299,8 @@ resource "aws_instance" "proxy" {
 
   depends_on = [module.vpc.aws_nat_gateway]
 
-  vpc_security_group_ids = [module.vpc.default_security_group_id]
-  subnet_id              = module.vpc.private_subnets[0]
-  key_name               = "tp3"
+  vpc_security_group_ids = [aws_security_group.proxy_sg.id]
+  subnet_id              = module.vpc.private_subnets[0]  
 
   user_data = data.cloudinit_config.proxy_user_data.rendered
 
@@ -283,7 +316,6 @@ resource "aws_instance" "gatekeeper" {
   vpc_security_group_ids      = [module.vpc.default_security_group_id]
   subnet_id                   = module.vpc.public_subnets[0]
   associate_public_ip_address = true
-  key_name                    = "tp3"
 
   user_data = data.cloudinit_config.gatekeeper_user_data.rendered
 

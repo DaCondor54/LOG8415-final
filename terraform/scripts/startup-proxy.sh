@@ -19,7 +19,6 @@ ufw --force reset
 ufw default deny incoming
 ufw default allow outgoing
 ufw allow from $GATEKEEPER_IP to any port 3000 proto tcp
-ufw allow 22/tcp
 ufw --force enable
 
 
