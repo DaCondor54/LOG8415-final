@@ -35,3 +35,15 @@ Change directory to terraform folder and terraform apply to up the infra
 cd terraform
 terraform apply
 ```
+
+### Step 2: Benchmarks
+
+Change directory to benchmarks folder and run the python script \
+The IP is the public ip address of the gatekeeper instance
+
+```bash
+cd benchmark
+python -m venv .venv
+.venv/Scripts/activate
+python main.py <IP>
+```
