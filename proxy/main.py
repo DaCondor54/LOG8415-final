@@ -95,6 +95,7 @@ app = FastAPI()
 @app.post("/")
 async def receive_sql_query(request: SQLRequest):
     try:
+        print('received request', request.sql_query, request.strategy)
         router.forwarding_strategy = request.strategy
         server_ip = router.route_query(request.sql_query)
         return send_sql_query(request.sql_query, server_ip)

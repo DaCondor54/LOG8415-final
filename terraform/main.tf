@@ -128,6 +128,15 @@ resource "aws_route53_record" "proxy" {
   records = [aws_instance.proxy.private_ip]
 }
 
+resource "aws_route53_record" "gatekeeper" {
+  zone_id = aws_route53_zone.private_zone.zone_id
+  name    = "gatekeeper.internal"
+  type    = "A"
+  ttl     = "30"
+  records = [aws_instance.gatekeeper.private_ip]
+}
+
+
 
 resource "aws_instance" "source" {
   ami           = data.aws_ami.ubuntu.id
@@ -190,7 +199,8 @@ locals {
   gatekeeper_py           = file("${path.module}/../gatekeeper/main.py")
   gatekeeper_requirements = file("${path.module}/../gatekeeper/requirements.txt")
 
-  startup_script = file("${path.module}/scripts/startup.sh")
+  proxy_startup_script = file("${path.module}/scripts/startup-proxy.sh")
+  gatekeeper_startup_script = file("${path.module}/scripts/startup-gatekeeper.sh")
 }
 
 data "cloudinit_config" "proxy_user_data" {
@@ -217,7 +227,7 @@ data "cloudinit_config" "proxy_user_data" {
   part {
     content_type = "text/x-shellscript"
     filename     = "startup.sh"
-    content      = local.startup_script
+    content      = local.proxy_startup_script
   }
 }
 
@@ -245,7 +255,7 @@ data "cloudinit_config" "gatekeeper_user_data" {
   part {
     content_type = "text/x-shellscript"
     filename     = "startup.sh"
-    content      = local.startup_script
+    content      = local.gatekeeper_startup_script
   }
 }
 

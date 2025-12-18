@@ -24,7 +24,8 @@ def write_logs(file, strategy, sql_query):
         
 for strategy in STRATEGIES:
     write_logs('read', strategy, read_request)
-    write_logs('read', strategy, write_request)
+
+write_logs('write', 'direct', write_request)
             
     
 

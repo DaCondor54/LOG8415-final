@@ -35,7 +35,9 @@ def validate_query_safety(sql_query: str) -> bool:
 
 def send_sql_query(request):
     json_request = json.dumps(asdict(request), indent=4)
+    print('sending', json_request)
     response = requests.post(f"http://{trusted_host}:3000", json_request)
+    print('received response')
     return response.json()
 
 app = FastAPI()
@@ -43,6 +45,7 @@ app = FastAPI()
 @app.post("/")
 async def receive_sql_query(request: SQLRequest, auth: dict = Depends(verify_token)):
     try:
+        print('received request', request.sql_query, request.strategy)
         validate_query_safety(request.sql_query)
         return send_sql_query(request)
     except DangerousQueryException as e:
@@ -51,6 +54,9 @@ async def receive_sql_query(request: SQLRequest, auth: dict = Depends(verify_tok
     except ValueError as e:
         print(e)
         raise HTTPException(status_code = 400, detail="Response content is not valid JSON. : " + str(e))
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code = 400, detail="Some Problem occured. : " + str(e))
 
 if __name__ == "__main__":
     import uvicorn

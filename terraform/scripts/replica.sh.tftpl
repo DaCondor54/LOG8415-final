@@ -59,3 +59,14 @@ SOURCE_LOG_POS=$SOURCE_LOG_POS;
 
 START REPLICA;
 EOF
+
+SOURCE_IP="$(dig +short source.internal)"
+PROXY_IP="$(dig +short proxy.internal)"
+
+ufw --force reset
+ufw default deny incoming
+ufw default allow outgoing
+ufw allow from $SOURCE_IP to any port 3306 proto tcp
+ufw allow from $PROXY_IP to any port 3306 proto tcp
+ufw allow 22/tcp
+ufw --force enable

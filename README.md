@@ -26,3 +26,12 @@ Enter your AWS credentials when prompted:
 ```bash
 aws configure set aws_session_token <your token here>
 ```
+
+### Step 2: Terraform
+
+Change directory to terraform folder and terraform apply to up the infra
+
+```bash
+cd terraform
+terraform apply
+```

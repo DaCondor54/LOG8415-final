@@ -41,3 +41,16 @@ FLUSH TABLES WITH READ LOCK;
 
 UNLOCK TABLES;
 EOF
+
+PROXY_IP="$(dig +short proxy.internal)"
+REPLICA_1_IP="$(dig +short replica_1.internal)"
+REPLICA_2_IP="$(dig +short replica_2.internal)"
+
+ufw --force reset
+ufw default deny incoming
+ufw default allow outgoing
+ufw allow from $PROXY_IP to any port 3306 proto tcp
+ufw allow from $REPLICA_1_IP to any port 3306 proto tcp
+ufw allow from $REPLICA_2_IP to any port 3306 proto tcp
+ufw allow 22/tcp
+ufw --force enable

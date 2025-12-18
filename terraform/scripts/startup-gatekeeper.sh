@@ -12,3 +12,10 @@ source ./.venv/bin/activate
 pip3 install -r /opt/requirements.txt
 
 nohup python3 /opt/main.py >> /var/log/app_output.log 2>&1 &
+
+ufw --force reset
+ufw default deny incoming
+ufw default allow outgoing
+ufw allow 3000/tcp
+ufw allow 22/tcp
+ufw --force enable
