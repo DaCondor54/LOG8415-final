@@ -295,7 +295,7 @@ data "cloudinit_config" "gatekeeper_user_data" {
 
 resource "aws_instance" "proxy" {
   ami           = data.aws_ami.ubuntu.id
-  instance_type = "t2.micro"
+  instance_type = "t2.large"
 
   depends_on = [module.vpc.aws_nat_gateway]
 
@@ -311,7 +311,7 @@ resource "aws_instance" "proxy" {
 
 resource "aws_instance" "gatekeeper" {
   ami           = data.aws_ami.ubuntu.id
-  instance_type = "t2.micro"
+  instance_type = "t2.large"
 
   vpc_security_group_ids      = [module.vpc.default_security_group_id]
   subnet_id                   = module.vpc.public_subnets[0]
